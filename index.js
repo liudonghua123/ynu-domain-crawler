@@ -85,7 +85,7 @@ function getChromePath() {
 
 (async () => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     executablePath: getChromePath(),
   });
   const [page] = await browser.pages();
