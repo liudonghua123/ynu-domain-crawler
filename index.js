@@ -29,19 +29,20 @@ async function writeFile(filePath = './output.txt', content) {
 }
 
 function transformShortenDomain(domains) {
-  const shortenComCnDomainRegex = /^.*\.(\w+\.com\.cn)$/
-  const shortenDomainRegex = /^.*\.(\w+\.\w+)$/
+  const shortenComCnDomainRegex = /^(?:.*\.)?(\w+\.com\.cn)$/
+  const shortenDomainRegex = /^(?:.*\.)?(\w+\.\w+)$/
   const ipDomainRegex = /^(\d+\.\d+\.\d+\.\d+)$/
+  let match = null;
   let results = domains.map(domain => {
-    let match = shortenComCnDomainRegex.exec(domain);
+    match = ipDomainRegex.exec(domain);
+    if (match != null) {
+      return match[1];
+    }
+    match = shortenComCnDomainRegex.exec(domain);
     if (match != null) {
       return match[1];
     }
     match = shortenDomainRegex.exec(domain);
-    if (match != null) {
-      return match[1];
-    }
-    match = ipDomainRegex.exec(domain);
     if (match != null) {
       return match[1];
     }
@@ -65,24 +66,39 @@ function transformShortenDomain(domains) {
     results.push(url.hostname);
     request.continue();
   });
+  page.on('error', err => {
+    console.log('\nError occurred: ', err);
+  });
+  page.on('pageerror', pageerr => {
+    console.log('\nPageerror occurred: ', pageerr);
+  })
   const urls = await getUrlList('./data.txt');
   let results = [];
   const totalUrls = urls.length;
   for (let i = 0; i < totalUrls; i++) {
     const url = urls[i];
     spinner = ora({ text: `(${i + 1}/${totalUrls}) Processing ${url}`, isEnabled: true }).start();
-    await page.goto(url, {
-      waitUntil: 'networkidle0',
-    });
-    spinner.succeed(`(${i + 1}/${totalUrls}) Processed ${url}`);
+    try {
+      // add the initial hostname even browse failed
+      results.push(new URL(url).hostname);
+      await page.goto(url, {
+        waitUntil: 'networkidle0',
+      });
+      spinner.succeed(`(${i + 1}/${totalUrls}) Processed ${url}`);
+    } catch (e) {
+      console.log(`\nError occurred on open page ${url} `, e);
+      spinner.fail(`(${i + 1}/${totalUrls}) Processed failed for ${url}`);
+    }
   }
   await browser.close();
   // remove dumplicate
   console.info(`got all domains ${results.length}, ${results}`);
   results = [...new Set(results)];
+  results.sort();
+  writeFile('output-all.txt', results.join('\n'));
   console.info(`got unique domains ${results.length}, ${results}`);
   results = transformShortenDomain(results);
-  console.info(`got unique sorted shorten domains ${results.length}, ${results}`)
-  writeFile('output.txt', results.join('\n'));
-  writeFile('output-squid.txt', results.map(item => `.${item}`).join(','));
+  console.info(`got unique sorted shorten domains ${results.length}, ${results}`);
+  writeFile('output-shorten.txt', results.join('\n'));
+  writeFile('output-shorten-squid.txt', results.map(item => `.${item}`).join('\n'));
 })();
