@@ -1,0 +1,11 @@
+{
+  "name": "ynu-domain-crawler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Donghua Liu <liudonghua123@gmail.com> (https://liudonghua.com/)",
+  "license": "MIT",
+  "dependencies": {
+    "ora": "^5.1.0",
+    "puppeteer-core": "^5.3.1"
+  }
+}
