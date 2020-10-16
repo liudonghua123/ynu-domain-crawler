@@ -31,7 +31,7 @@ async function writeFile(filePath = './output.txt', content) {
 }
 
 function transformShortenDomain(domains) {
-  const shortenComCnDomainRegex = /^(?:.*\.)?(\w+\.com\.cn)$/
+  const shortenCnDomainRegex = /^(?:.*\.)?(\w+(?:\.com|\.edu)\.cn)$/
   const shortenDomainRegex = /^(?:.*\.)?(\w+\.\w+)$/
   const ipDomainRegex = /^(\d+\.\d+\.\d+\.\d+)$/
   let match = null;
@@ -40,7 +40,7 @@ function transformShortenDomain(domains) {
     if (match != null) {
       return match[1];
     }
-    match = shortenComCnDomainRegex.exec(domain);
+    match = shortenCnDomainRegex.exec(domain);
     if (match != null) {
       return match[1];
     }
