@@ -5,7 +5,7 @@ const fs = require('fs/promises');
 const ora = require('ora');
 const { ArgumentParser } = require('argparse');
 const { version } = require('./package.json');
-var Mustache = require('mustache');
+const Mustache = require('mustache');
 
 async function getUrlList(filePath = './data.txt') {
   // read contents of the file
@@ -84,6 +84,18 @@ function getChromePath() {
   throw new TypeError(`Cannot run action. ${os.type} is not supported.`);
 }
 
+async function oraProcess(title, cb) {
+  const spinner = ora({ text: `${title} starting...`, isEnabled: true }).start();
+  try {
+    await cb();
+    spinner.succeed(`${title} finished...`);
+    return true;
+  } catch (error) {
+    spinner.fail(`${title} failed...`);
+    return false;
+  }
+}
+
 const parser = new ArgumentParser({
   description: 'ynu-domain-crawler'
 });
@@ -135,16 +147,17 @@ parser.add_argument('-i', '--input', { help: 'input data filePath', default: './
     }
   }
   await browser.close();
-  console.info(`got all domains ${results.length}, ${results}`);
+  spinner = ora({ text: `got ${results.length} domains`, isEnabled: true }).stopAndPersist();
+  // remove duplicates and sort the results
   results = [...new Set(results)];
   results.sort();
-  await writeFile(`output-${fileName}-all.txt`, results.join('\n'));
-  console.info(`got unique domains ${results.length}, ${results}`);
+  spinner = ora({ text: `got unique ${results.length} domains`, isEnabled: true }).stopAndPersist();
+  await oraProcess(`write output-${fileName}-all.txt`, async () => await writeFile(`output-${fileName}-all.txt`, results.join('\n')))
   results = transformShortenDomain(results);
-  console.info(`got unique sorted shorten domains ${results.length}, ${results}`);
-  await writeFile(`output-${fileName}-shorten.txt`, results.join('\n'));
-  await writeFile(`output-${fileName}-shorten-squid.txt`, results.map(item => `.${item}`).join('\n'));
+  spinner = ora({ text: `got unique sorted unique ${results.length} domains`, isEnabled: true }).stopAndPersist();
+  await oraProcess(`write output-${fileName}-shorten.txt`, async () => await writeFile(`output-${fileName}-shorten.txt`, results.join('\n')));
+  await oraProcess(`write output-${fileName}-shorten-squid.txt`, async () => await writeFile(`output-${fileName}-shorten-squid.txt`, results.map(item => `.${item}`).join('\n')));
   // render the proxy.pac from proxy.pac.mustache
   const template = await fs.readFile('./proxy.pac.mustache', { encoding: 'UTF-8' });
-  await writeFile(`output-${fileName}-proxy-pac.txt`, Mustache.render(template, { domains: results }));
+  await oraProcess(`write output-${fileName}-proxy-pac.txt`, async () => await writeFile(`output-${fileName}-proxy-pac.txt`, Mustache.render(template, { domains: results })));
 })();
