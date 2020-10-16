@@ -5,7 +5,10 @@
   "author": "Donghua Liu <liudonghua123@gmail.com> (https://liudonghua.com/)",
   "license": "MIT",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "start-data.txt.sample": "node index.js -i data.txt.sample",
+    "start-data.txt": "node index.js -i data.txt",
+    "start-data-speed.txt": "node index.js -i data-speed.txt"
   },
   "dependencies": {
     "argparse": "^2.0.1",

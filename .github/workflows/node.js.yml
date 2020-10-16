@@ -25,7 +25,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
-      - run: yarn start
+      - run: yarn start-data.txt
+      - run: yarn start-data-speed.txt
       - uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
