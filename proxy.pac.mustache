@@ -1,0 +1,23 @@
+var proxy = 'PROXY 113.55.17.3:3128; DIRECT';
+var direct = 'DIRECT';
+var domains = [
+{{#domains}}
+  "{{.}}",
+{{/domains}}
+  "ip.cn",
+];
+
+function FindProxyForURL(url, host) {
+   // if matched the list , send to a specific proxy.
+   var match = false;
+   for(var i = 0; i < domains.length; i++) {
+     if (host.toLowerCase().endsWith(domains[i])) {
+        match = true;
+        break;
+     }
+   }
+   if(match) {
+    return proxy;
+   }
+   return direct;
+}

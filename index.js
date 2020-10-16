@@ -3,8 +3,9 @@ const os = require("os");
 const path = require("path");
 const fs = require('fs/promises');
 const ora = require('ora');
-
-let spinner = ora({ text: 'Processing...', isEnabled: true }).stopAndPersist();
+const { ArgumentParser } = require('argparse');
+const { version } = require('./package.json');
+var Mustache = require('mustache');
 
 async function getUrlList(filePath = './data.txt') {
   // read contents of the file
@@ -83,7 +84,21 @@ function getChromePath() {
   throw new TypeError(`Cannot run action. ${os.type} is not supported.`);
 }
 
+const parser = new ArgumentParser({
+  description: 'ynu-domain-crawler'
+});
+
+parser.add_argument('-v', '--version', { action: 'version', version });
+parser.add_argument('-i', '--input', { help: 'input data filePath', default: './data.txt' });
+
 (async () => {
+  const argparseResult = parser.parse_args();
+  const filePath = argparseResult.input;
+  if (!require('fs').existsSync(filePath)) {
+    return console.error('input file not exists!');
+  }
+  const { name: fileName } = path.parse(filePath);
+  let spinner = ora({ text: 'Processing...', isEnabled: true }).stopAndPersist();
   const browser = await puppeteer.launch({
     headless: true,
     executablePath: getChromePath(),
@@ -101,7 +116,7 @@ function getChromePath() {
   page.on('pageerror', pageerr => {
     console.log('\nPageerror occurred: ', pageerr);
   })
-  const urls = await getUrlList('./data.txt');
+  const urls = await getUrlList(filePath);
   let results = [];
   const totalUrls = urls.length;
   for (let i = 0; i < totalUrls; i++) {
@@ -123,10 +138,13 @@ function getChromePath() {
   console.info(`got all domains ${results.length}, ${results}`);
   results = [...new Set(results)];
   results.sort();
-  await writeFile('output-all.txt', results.join('\n'));
+  await writeFile(`output-${fileName}-all.txt`, results.join('\n'));
   console.info(`got unique domains ${results.length}, ${results}`);
   results = transformShortenDomain(results);
   console.info(`got unique sorted shorten domains ${results.length}, ${results}`);
-  await writeFile('output-shorten.txt', results.join('\n'));
-  await writeFile('output-shorten-squid.txt', results.map(item => `.${item}`).join('\n'));
+  await writeFile(`output-${fileName}-shorten.txt`, results.join('\n'));
+  await writeFile(`output-${fileName}-shorten-squid.txt`, results.map(item => `.${item}`).join('\n'));
+  // render the proxy.pac from proxy.pac.mustache
+  const template = await fs.readFile('./proxy.pac.mustache', { encoding: 'UTF-8' });
+  await writeFile(`output-${fileName}-proxy-pac.txt`, Mustache.render(template, { domains: results }));
 })();
